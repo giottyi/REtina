@@ -1,9 +1,12 @@
+import os
+os.environ["OMP_NUM_THREADS"] = '16'
+
 import matplotlib.pyplot as plt
 import numpy as np
 from tifffile import imread
 from tqdm import tqdm
 
-import glob, os, sys
+import glob, time, datetime as dt
 
 
 flats_dir = r'E:\OneDrive - Politecnico di Milano\NDT@DENG\RETINA\Users\Leone Di Lernia\trasfomatore\Trasformatore_110kV_4.6mA_2s\flats'
@@ -11,16 +14,13 @@ darks_dir = r'E:\OneDrive - Politecnico di Milano\NDT@DENG\RETINA\Users\Leone Di
 projs_dir = r'E:\OneDrive - Politecnico di Milano\NDT@DENG\RETINA\Users\Leone Di Lernia\\trasfomatore\Trasformatore_110kV_4.6mA_2s\projections'
 
 
-def get_views(directory, crop=None):
+def get_views(directory):
     views_paths = sorted(glob.glob(os.path.join(directory, "*.tif")))
     if not views_paths:
-        raise ValueError("No TIFF files found in directory.")
+        raise UserWarning("No TIFF files found in directory.")
 
     sample_view = imread(views_paths[0])
     sample_view = np.flipud(sample_view)
-    if sample_view is None:
-        raise ValueError(f"Failed to read sample image: {views_paths[0]}")
-
     height, width = sample_view.shape
     n_views = len(views_paths)
     views_stack = np.empty((n_views, height, width), dtype=sample_view.dtype)
@@ -50,17 +50,48 @@ def get_dark(directory):
     return get_flat(directory)
 
 
+def get_data(views_path, flat_path, dark_path=None):
+    """
+    applies flat-dark correction and minus_log
+    """
+    flat = get_flat(flat_path)
+    angles, views = get_views(views_path)
+    if dark_path is None:
+        dark = np.zeros_like(flat)
+    else:
+        dark = get_dark(dark_path)
+
+    def correct_log(views, flat, dark, dtype=np.float32, chunk=128):
+        eps = np.finfo(np.float16).tiny
+        denom = (flat - dark).astype(dtype, copy=False)
+        out = np.empty(views.shape, dtype=dtype)
+        for i in range(0, views.shape[0], chunk):
+            sl = slice(i, i+chunk)
+            tmp = views[sl].astype(dtype, copy=False)
+            np.subtract(tmp, dark, out=tmp)
+            np.add(denom, eps, out=denom)
+            np.maximum(tmp, eps, out=tmp)
+            np.divide(tmp, denom, out=tmp)
+            np.log(tmp, out=tmp)
+            out[sl] = -tmp
+        return out
+    return angles, correct_log(views, flat, dark)
+
+
 def main():
     """
     currently crops dataset to reconstruct with astra
     """
-    #flat = get_flat(flats_dir)
-    #dark = get_dark(darks_dir)
-    _, data = get_views(projs_dir)
+    t0 = time.perf_counter() 
+    angles, data = get_data(projs_dir, flats_dir, darks_dir)
+    elapsed = time.perf_counter() - t0
+    print(f"Finished in {elapsed:.3f} s  ({dt.timedelta(seconds=elapsed)})")
 
-    plt.imshow(data[0], cmap='gray')
-    plt.gca().invert_yaxis() 
-    plt.savefig('raw_projection.png')
+    plt.imshow(data[0], cmap='seismic')
+    plt.colorbar()
+    plt.tight_layout()
+    plt.gca().invert_yaxis()
+    #plt.savefig("./sample_projection.png", dpi=300)
 
 
 
