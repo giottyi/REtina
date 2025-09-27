@@ -7,7 +7,7 @@ import numpy as np
 
 import glob, sys#, time, datetime as dt
 
-from .preprocessing import get_views, get_data
+from preprocessing import get_views, get_flat
 
 
 def ICS_normalize(src, flat):
