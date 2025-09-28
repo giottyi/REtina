@@ -37,13 +37,13 @@ def get_views(directory, crop=None):
     views_angles = np.empty(n_views, dtype=int)
 
     views_stack[0] = sample_view
-    views_angles[0] = int(views_paths[0].split('.')[1].split('_')[2])
+    views_angles[0] = int(views_paths[0].split('.')[0].split('_')[-1])
     for i, view_path in enumerate(tqdm(views_paths[1:], desc="Loading views"), start=1):
         view = imread(view_path)
         if crop is not None:
             views_stack[i] = np.flipud(view)[y1:y2, x1:x2]
         else: views_stack[i] = np.flipud(view)
-        views_angles[i] = int(view_path.split('.')[1].split('_')[2])
+        views_angles[i] = int(view_path.split('.')[0].split('_')[-1])
     return views_angles, views_stack
 
 
