@@ -58,7 +58,7 @@ def get_ICS_coords(projs_directory, flats_directory):
     homo_fill = np.ones_like(homo_centers[:,0,0])
     for proj_idx, proj_angle in enumerate(all_centers.keys()):
         centers = all_centers[proj_angle]
-        centers = centers[np.argsort(-centers[:,-1])]
+        centers = centers[np.argsort(centers[:,-1])]
         homo_centers[:,0:2,proj_idx] = centers
         homo_centers[:,-1,proj_idx] = homo_fill
     return homo_centers
@@ -83,7 +83,6 @@ def main():
     projs_dir = sys.argv[1]
     flats_dir = sys.argv[2]
 
-    print("Analysing calibration data ...")
     projs_array = get_ICS_coords(projs_dir, flats_dir)
     os.makedirs('../data', exist_ok=True)
     np.save("../data/phantom_ICS.npy", projs_array)

@@ -15,13 +15,7 @@ eps = np.finfo(np.float16).tiny
 
 linear_camera_matrix = np.array([
     [-1/pxl_size, 0.0, 2750//2],
-    [0.0, -1/pxl_size, 2200//2],
-    [0.0, 0.0, 1.0]
-])
-
-linear_camera_matrix = np.array([
-    [-15, 0.0, 2750//2],
-    [0.0, -15, 2200//2],
+    [0.0, +1/pxl_size, 2200//2],
     [0.0, 0.0, 1.0]
 ])
 
@@ -37,7 +31,7 @@ PARAM_SCALES = np.array([
 PARAM_OFFSETS = np.array([
     0.0,        # trans_x: centered at 0
     0.0,        # trans_y: centered at 0
-    600.0,      # trans_z: centered at 600mm
+    1000.0,     # trans_z: centered at 600mm
     0.0,        # tilt: centered at 0
     0.0,        # roll: centered at 0
     0.0         # initial: centered at 0
@@ -168,7 +162,7 @@ def main():
 
     initial_params = [
         0.0, 0.0,           # trans_x, trans_y
-        600.0,              # trans_z, [mm]
+        656.0,              # trans_z, [mm]
         np.radians(0.0),    # tilt
         np.radians(0.0),    # roll
         np.radians(0.0)     # initial rotation
@@ -177,7 +171,7 @@ def main():
     bounds = [
         (-100.0, 100.0),            # trans_x, mm
         (-100.0, 100.0),            # trans_y, mm
-        (300.0, 1500.0),            # trans_z, mm
+        (+eps, 1500),               # trans_z, mm
         (-np.pi/4, np.pi/4),        # tilt, radians
         (-np.pi/4, np.pi/4),        # roll, radians
         (-2.0*np.pi, 2.0*np.pi)     # rot, radians
@@ -209,7 +203,7 @@ def main():
     print(f"trans_y: {optimized_params[1]:.2f} mm")
     print(f"SOD: {optimized_params[2]:.2f} mm")
     print(f"SDD: {SDD:.2f} mm")
-    print(f"magnification: {SDD/optimized_params[2]:.3f}")
+    print(f"magnification: {SDD/optimized_params[2]:.4f}")
     print(f"tilt: {np.degrees(optimized_params[3]):.2f} degrees")
     print(f"roll: {np.degrees(optimized_params[4]):.2f} degrees")
     print(f"initial: {np.degrees(optimized_params[5] % (2*np.pi)):.2f} degrees")
