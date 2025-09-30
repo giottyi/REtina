@@ -88,18 +88,25 @@ def LPRt(params, num_projs):
     homo_row = np.tile(np.array([[0.0, 0.0, 0.0, 1.0]]), (num_projs, 1, 1))
     Rt = np.concatenate((Rt, homo_row), axis=1)
 
-    P = np.array([              # projection matrix
+    P = np.array([                          # projection matrix
         [SDD, 0.0, 0.0, 0.0],
         [0.0, SDD, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0]
     ])
 
-    L = np.array([              # linear camera matrix
+    L = np.array([                          # linear camera matrix
         [-1/pxl_size, 0.0, IMAGE_W//2],
         [0.0, +1/pxl_size, IMAGE_H//2],
         [0.0, 0.0, 1.0]
     ])
-    return L @ P @ Rt
+
+    fix = 15.30  
+    H = np.array([                          # correction matrix
+        [fix*pxl_size, 0.0, 0.0],
+        [0.0, fix*pxl_size, 0.0],
+        [0.0, 0.0, 1.0]
+    ])
+    return H @ L @ P @ Rt
 
 
 def homo_normalization(res):
@@ -163,9 +170,9 @@ def main():
     initial_params = [
         0.0, 0.0,           # trans_x, trans_y
         656.0,              # trans_z, [mm]
-        np.radians(0.0),    # tilt
-        np.radians(0.0),    # roll
-        np.radians(0.0)     # initial rotation
+        np.radians(-5.0),    # tilt
+        np.radians(-3.0),    # roll
+        np.radians(315.0)     # initial rotation
     ]
 
     bounds = [
