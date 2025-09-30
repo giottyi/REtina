@@ -10,14 +10,11 @@ import glob, sys#, time, datetime as dt
 
 
 SDD = 690.0  # mm
+
+IMAGE_W = 2750  # mm
+IMAGE_H = 2200  # mm
 pxl_size = 61e-3  # mm
 eps = np.finfo(np.float16).tiny
-
-linear_camera_matrix = np.array([
-    [-1/pxl_size, 0.0, 2750//2],
-    [0.0, +1/pxl_size, 2200//2],
-    [0.0, 0.0, 1.0]
-])
 
 PARAM_SCALES = np.array([
     100.0,      # trans_x: mm
@@ -31,7 +28,7 @@ PARAM_SCALES = np.array([
 PARAM_OFFSETS = np.array([
     0.0,        # trans_x: centered at 0
     0.0,        # trans_y: centered at 0
-    1000.0,     # trans_z: centered at 600mm
+    1000.0,     # trans_z: centered at 1000 mm
     0.0,        # tilt: centered at 0
     0.0,        # roll: centered at 0
     0.0         # initial: centered at 0
@@ -91,14 +88,17 @@ def LPRt(params, num_projs):
     homo_row = np.tile(np.array([[0.0, 0.0, 0.0, 1.0]]), (num_projs, 1, 1))
     Rt = np.concatenate((Rt, homo_row), axis=1)
 
-    focal_d = SDD
-    P = np.array([
-        [focal_d, 0.0, 0.0, 0.0],
-        [0.0, focal_d, 0.0, 0.0],
+    P = np.array([              # projection matrix
+        [SDD, 0.0, 0.0, 0.0],
+        [0.0, SDD, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0]
     ])
-    
-    L = linear_camera_matrix
+
+    L = np.array([              # linear camera matrix
+        [-1/pxl_size, 0.0, IMAGE_W//2],
+        [0.0, +1/pxl_size, IMAGE_H//2],
+        [0.0, 0.0, 1.0]
+    ])
     return L @ P @ Rt
 
 
