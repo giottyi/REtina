@@ -2,17 +2,24 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
+import tifffile
 
 import sys
 
 
-img_path = "../data/exp_60kV_3s_0.jpg"
+path = "../data/grid_corrected.tif"
 
-circle_spacing = 14.22  # mm (center-to-center)
+sod = 589  # mm
+sdd = 679  # mm
+M = sdd/sod
+circle_spacing = 14.22 * M  # mm (center-to-center)
 
-hdul = fits.open(sys.argv[1])
+#hdul = fits.open(sys.argv[1])
 #hdul.info()
-gray = hdul[0].data
+#gray = hdul[0].data
+stack = tifffile.imread(path)
+gray = np.median(stack, axis=0)
+print(gray.max())
 if gray is None:
     raise ValueError(f"Failed to read image: {img_path}")
 
@@ -21,7 +28,7 @@ bw = cv2.medianBlur(bw, 5)
 
 plt.imshow(bw, cmap='gray')
 plt.axis('off')
-plt.savefig('grid.pdf', bbox_inches='tight')
+#plt.savefig('grid.eps', bbox_inches='tight')
 plt.show()
 
 candidate_dims = []
@@ -41,7 +48,7 @@ for dims in candidate_dims:
         print(f"✔ Found grid with size {dims}")
         dims_used = dims
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-        corners_subpix = cv2.cornerSubPix(bw, corners, (11,11), (-1,-1), criteria)
+        corners_subpix = cv2.cornerSubPix(bw, centers, (11,11), (-1,-1), criteria)
         print(corners_subpix)
         found = True
         break

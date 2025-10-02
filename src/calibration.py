@@ -9,7 +9,7 @@ from scipy.optimize import minimize
 import glob, sys#, time, datetime as dt
 
 
-SDD = 690.0  # mm
+SDD = 679.0  # mm
 
 IMAGE_W = 2750  # mm
 IMAGE_H = 2200  # mm
@@ -73,7 +73,7 @@ def LPRt(params, num_projs):
         [0.0, 0.0, 1.0]
     ])
 
-    rot_step = 2.0 * np.pi / (num_projs - 1)
+    rot_step = np.deg2rad(348) / (num_projs - 1)
     R_y_fn = lambda n: np.array([ 
         [ np.cos(initial-n*rot_step), 0.0, +np.sin(initial-n*rot_step)],
         [0.0, 1.0, 0.0],
@@ -99,18 +99,6 @@ def LPRt(params, num_projs):
         [-fix/pxl_size, 0.0, IMAGE_W//2],
         [0.0, +fix/pxl_size, IMAGE_H//2],
         [0.0, 0.0, 1.0]
-    ])
-
-    # homography matrix from opencv using chessboard
-    H_opencv = np.array([
-        [-6.19332591e-03, -1.71983200e-04,  9.57134264e+00],
-        [ 1.74926617e-04, -6.20030226e-03,  7.05071954e+00],
-        [-8.72141858e-07, -2.08318579e-06,  1.00000000e+00]
-    ])
-    H = np.array([
-        [-1.61345614e+01, +4.17003724e-01, +1.51482957e+03],
-        [-4.51981406e-01, +1.61262934e+01, IMAGE_H-1.18097824e+03],
-        [+6.23172829e-06, -1.44706447e-05,  1.00000000e+00]
     ])
 
     return L @ P @ Rt
@@ -185,7 +173,7 @@ def main():
     bounds = [
         (-100.0, 100.0),            # trans_x, mm
         (-100.0, 100.0),            # trans_y, mm
-        (+eps, 1500),               # trans_z, mm
+        (+eps, SDD),               # trans_z, mm
         (-np.pi/4, np.pi/4),        # tilt, radians
         (-np.pi/4, np.pi/4),        # roll, radians
         (-2.0*np.pi, 2.0*np.pi)     # rot, radians

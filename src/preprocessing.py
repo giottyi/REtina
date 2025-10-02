@@ -4,6 +4,7 @@ os.environ["OMP_NUM_THREADS"] = '16'
 import matplotlib.pyplot as plt
 import numpy as np
 from tifffile import imread
+from astropy.io import fits
 from tqdm import tqdm
 
 import glob, sys#, time, datetime as dt
@@ -16,12 +17,22 @@ import glob, sys#, time, datetime as dt
 crop = None
 
 
-def get_views(directory, crop=None):
-    views_paths = sorted(glob.glob(os.path.join(directory, "*.tif")))
-    if not views_paths:
-        raise UserWarning("No TIFF files found in directory.")
+def get_views(directory, crop=None, fit=True):
+    if fit is True: 
+        views_paths = sorted(glob.glob(os.path.join(directory, "*.fit")))
+        if not views_paths:
+            raise UserWarning("No FIT files found in directory.")
 
-    sample_view = imread(views_paths[0])
+        hdul = fits.open(views_paths[0])
+        sample_view = hdul[0].data
+
+    else: 
+        views_paths = sorted(glob.glob(os.path.join(directory, "*.tif")))
+        if not views_paths:
+            raise UserWarning("No TIFF files found in directory.")
+
+        sample_view = imread(views_paths[0])
+
     if crop is not None:
         crop_width, crop_height = crop
         height, width = sample_view.shape
@@ -37,34 +48,37 @@ def get_views(directory, crop=None):
     views_angles = np.empty(n_views, dtype=int)
 
     views_stack[0] = sample_view
-    views_angles[0] = int(views_paths[0].split('.')[0].split('_')[-1])
+    #views_angles[0] = int(views_paths[0].split('.')[0].split('_')[-1])
     for i, view_path in enumerate(tqdm(views_paths[1:], desc="Loading views"), start=1):
-        view = imread(view_path)
+        if fit is True: 
+            hdul = fits.open(view_paths)
+            view = hdul[0].data
+        else: view = imread(view_path)
         if crop is not None:
             views_stack[i] = np.flipud(view)[y1:y2, x1:x2]
         else: views_stack[i] = np.flipud(view)
-        views_angles[i] = int(view_path.split('.')[0].split('_')[-1])
+        #views_angles[i] = int(view_path.split('.')[0].split('_')[-1])
     return views_angles, views_stack
 
 
-def get_flat(directory, crop=None):
-    _, flats_stack = get_views(directory, crop=crop)
+def get_flat(directory, crop=None, fit=True):
+    _, flats_stack = get_views(directory, crop=crop, fit=fit)
     return np.median(flats_stack, axis=0).astype(flats_stack.dtype)
 
 
-def get_dark(directory, crop=None):
-    return get_flat(directory, crop=crop)
+def get_dark(directory, crop=None, fit=True):
+    return get_flat(directory, crop=crop, fit=fit)
 
 
-def get_data(views_path, flat_path, dark_path=None, crop=None):
+def get_data(views_path, flat_path, dark_path=None, crop=None, fit=True):
     """
     applies flat-dark correction and minus_log
     """
-    flat = get_flat(flat_path, crop=crop)
-    angles, views = get_views(views_path, crop=crop)
+    flat = get_flat(flat_path, crop=crop, fit=fit)
+    angles, views = get_views(views_path, crop=crop, fit=fit)
     if dark_path is None:
         dark = np.zeros_like(flat)
-    else: dark = get_dark(dark_path, crop=crop)
+    else: dark = get_dark(dark_path, crop=crop, fit=fit)
 
     def correct_log(views, flat, dark, dtype=np.float32, chunk=128):
         eps = np.finfo(np.float16).tiny
@@ -94,9 +108,6 @@ def main():
     #elapsed = time.perf_counter() - t0
     #print(f"Finished in {elapsed:.3f} s  ({dt.timedelta(seconds=elapsed)})")
     
-    flats_dir = sys.argv[1]
-    flat = get_flat(flats_dir)
-
 
 
 if __name__ == "__main__":
