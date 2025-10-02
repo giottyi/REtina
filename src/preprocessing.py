@@ -88,17 +88,14 @@ def main():
     currently crops dataset to reconstruct with astra
     """
     #t0 = time.perf_counter() 
-    angles, data = get_data(projs_dir, flats_dir, darks_dir, crop=None)
-    print(data.dtype, data.min(), data.max())
+    #angles, data = get_data(projs_dir, flats_dir, darks_dir, crop=None)
+    #print(data.dtype, data.min(), data.max())
     #print(data.shape)
     #elapsed = time.perf_counter() - t0
     #print(f"Finished in {elapsed:.3f} s  ({dt.timedelta(seconds=elapsed)})")
-
-    plt.imshow(data[180], cmap='gray')
-    plt.colorbar()
-    plt.tight_layout()
-    plt.gca().invert_yaxis()
-    plt.savefig("./sample_projection.png", dpi=300)
+    
+    flats_dir = sys.argv[1]
+    flat = get_flat(flats_dir)
 
 
 

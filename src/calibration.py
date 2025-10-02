@@ -113,7 +113,7 @@ def LPRt(params, num_projs):
         [+6.23172829e-06, -1.44706447e-05,  1.00000000e+00]
     ])
 
-    return H @ P @ Rt
+    return L @ P @ Rt
 
 
 def homo_normalization(res):

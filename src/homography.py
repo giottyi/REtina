@@ -1,67 +1,63 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from astropy.io import fits
 
-img_path = "../data/exp_022_crop.jpg"   # change to your .tif if needed
-square_size = 8.24  # mm per square
+import sys
 
-gray = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH)
+
+img_path = "../data/exp_60kV_3s_0.jpg"
+
+circle_spacing = 14.22  # mm (center-to-center)
+
+hdul = fits.open(sys.argv[1])
+#hdul.info()
+gray = hdul[0].data
 if gray is None:
     raise ValueError(f"Failed to read image: {img_path}")
 
-gray = cv2.equalizeHist(gray)
-#gray = cv2.bilateralFilter(gray, d=9, sigmaColor=75, sigmaSpace=75)
-#_, gray = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+bw = np.where(gray < 2100, 255, 0).astype(np.uint8)
+bw = cv2.medianBlur(bw, 5)
 
-plt.imshow(gray, cmap='gray')
+plt.imshow(bw, cmap='gray')
+plt.axis('off')
+plt.savefig('grid.pdf', bbox_inches='tight')
 plt.show()
 
 candidate_dims = []
-
-for cols in range(14, 9, -1):
-    for rows in range(12, 6, -1):
-        if rows < cols:            # only valid if rows < cols
-            candidate_dims.append((cols, rows))
-
+for cols in range(13, 7, -1):
+    for rows in range(11, 5, -1):
+        candidate_dims.append((cols, rows))
 
 found = False
 corners_subpix = None
 dims_used = None
-
 for dims in candidate_dims:
-    print(f"Trying checkerboard size: {dims}")
-    ret, corners = cv2.findChessboardCorners(
-        gray, dims,
-        flags=cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_NORMALIZE_IMAGE + cv2.CALIB_CB_FAST_CHECK
-    )
+    print(f"Trying grid size: {dims}")
+    ret, centers = cv2.findCirclesGrid(
+        bw, dims,
+        flags=cv2.CALIB_CB_SYMMETRIC_GRID) # + cv2.CALIB_CB_CLUSTERING
     if ret:
-        print(f"✔ Found checkerboard with size {dims}")
+        print(f"✔ Found grid with size {dims}")
         dims_used = dims
-        # Refine corners
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-        corners_subpix = cv2.cornerSubPix(gray, corners, (11,11), (-1,-1), criteria)
+        corners_subpix = cv2.cornerSubPix(bw, corners, (11,11), (-1,-1), criteria)
         print(corners_subpix)
         found = True
         break
 
 if not found:
-    print("❌ No checkerboard detected with any of the given sizes.")
+    print("❌ No grid detected with any of the given sizes.")
     exit()
 
-# --- build real world coordinates
 objp = np.zeros((dims_used[0]*dims_used[1], 3), np.float32)
 objp[:, :2] = np.mgrid[0:dims_used[0], 0:dims_used[1]].T.reshape(-1, 2)
-objp *= square_size
+objp[:, :2] *= circle_spacing
+centroid = np.mean(objp[:, :2], axis=0)
+objp[:, :2] -= centroid
 objp_2d = objp[:, :2]
 print(objp_2d)
 
-# --- Homography
 H, mask = cv2.findHomography(objp_2d, corners_subpix, cv2.RANSAC)
 print("Homography matrix:\n", H)
-
-# --- visualize
-vis = cv2.drawChessboardCorners(gray, dims_used, corners_subpix, True)
-#cv2.imshow("Detected Checkerboard", vis)
-#cv2.waitKey(0)
-#cv2.destroyAllWindows()
 
