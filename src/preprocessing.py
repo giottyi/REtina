@@ -51,7 +51,7 @@ def get_views(directory, crop=None, fit=True):
     #views_angles[0] = int(views_paths[0].split('.')[0].split('_')[-1])
     for i, view_path in enumerate(tqdm(views_paths[1:], desc="Loading views"), start=1):
         if fit is True: 
-            hdul = fits.open(view_paths)
+            hdul = fits.open(view_path)
             view = hdul[0].data
         else: view = imread(view_path)
         if crop is not None:

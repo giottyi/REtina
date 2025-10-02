@@ -19,7 +19,6 @@ circle_spacing = 14.22 * M  # mm (center-to-center)
 #gray = hdul[0].data
 stack = tifffile.imread(path)
 gray = np.median(stack, axis=0)
-print(gray.max())
 if gray is None:
     raise ValueError(f"Failed to read image: {img_path}")
 
@@ -29,11 +28,11 @@ bw = cv2.medianBlur(bw, 5)
 plt.imshow(bw, cmap='gray')
 plt.axis('off')
 #plt.savefig('grid.eps', bbox_inches='tight')
-plt.show()
+#plt.show()
 
 candidate_dims = []
-for cols in range(13, 7, -1):
-    for rows in range(11, 5, -1):
+for cols in range(12, 8, -1):
+    for rows in range(10, 6, -1):
         candidate_dims.append((cols, rows))
 
 found = False
@@ -49,7 +48,6 @@ for dims in candidate_dims:
         dims_used = dims
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         corners_subpix = cv2.cornerSubPix(bw, centers, (11,11), (-1,-1), criteria)
-        print(corners_subpix)
         found = True
         break
 
@@ -63,7 +61,6 @@ objp[:, :2] *= circle_spacing
 centroid = np.mean(objp[:, :2], axis=0)
 objp[:, :2] -= centroid
 objp_2d = objp[:, :2]
-print(objp_2d)
 
 H, mask = cv2.findHomography(objp_2d, corners_subpix, cv2.RANSAC)
 print("Homography matrix:\n", H)

@@ -73,7 +73,7 @@ def LPRt(params, num_projs):
         [0.0, 0.0, 1.0]
     ])
 
-    rot_step = np.deg2rad(348) / (num_projs - 1)
+    rot_step = np.deg2rad(360) / (num_projs - 1)
     R_y_fn = lambda n: np.array([ 
         [ np.cos(initial-n*rot_step), 0.0, +np.sin(initial-n*rot_step)],
         [0.0, 1.0, 0.0],
@@ -96,12 +96,17 @@ def LPRt(params, num_projs):
 
     fix = 0.938
     L = np.array([                          # linear camera matrix
-        [-fix/pxl_size, 0.0, IMAGE_W//2],
+        [+fix/pxl_size, 0.0, IMAGE_W//2],
         [0.0, +fix/pxl_size, IMAGE_H//2],
         [0.0, 0.0, 1.0]
     ])
 
-    return L @ P @ Rt
+    H = np.array([
+        [ 1.62730076e+01, -3.55474402e-01,  1.42003071e+03],
+        [ 3.09707202e-01,  1.62836233e+01,  1.16059758e+03],
+        [ 1.08490663e-05,  4.83287819e-05,  1.00000000e+00]
+    ])
+    return H @ P @ Rt
 
 
 def homo_normalization(res):

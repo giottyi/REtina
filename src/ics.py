@@ -44,22 +44,17 @@ def get_ICS_coords(projs_directory, flats_directory, fit=True):
     following them between projections by sorting y coordinates
     """
     _, projs_stack = get_views(projs_directory, fit=fit)
-    projs_angles = np.linspace(0, 2*np.pi, len(projs_stack))
-    print(np.rad2deg(projs_angles))
     flat = get_flat(flats_directory, fit=fit)
-    all_centers = {}
+    all_centers = []
     for i, proj in enumerate(projs_stack):
         centers = detect_centers(proj, flat)
-        if os.environ.get('VIZ') == '2':# and i % 29 == 0:
+        if os.environ.get('VIZ') == '2' and i % 9 == 0:
             plot_centers(ICS_normalize(proj,flat), centers)
-        if centers is not None:
-            all_centers[projs_angles[i]] = centers
-
-    num_centers = max([len(centers) for centers in all_centers.values()])
+        all_centers.append(centers)
+    num_centers = max([len(centers) for centers in all_centers])
     homo_centers = np.full((num_centers, 3, len(projs_stack)), np.nan)
     homo_fill = np.ones_like(homo_centers[:,0,0])
-    for proj_idx, proj_angle in enumerate(all_centers.keys()):
-        centers = all_centers[proj_angle]
+    for proj_idx, centers in enumerate(all_centers):
         centers = centers[np.argsort(centers[:,-1])]
         homo_centers[:,0:2,proj_idx] = centers
         homo_centers[:,-1,proj_idx] = homo_fill
