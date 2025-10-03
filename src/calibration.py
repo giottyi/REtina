@@ -9,6 +9,19 @@ from scipy.optimize import minimize
 import glob, sys#, time, datetime as dt
 
 
+homography = np.array([
+    [ 1.62774908e+01, -1.63539115e-01,  1.41912004e+03],
+    [ 8.30095856e-02,  1.62484113e+01,  1.15933260e+03],
+    [ 8.71800587e-06,  2.17443879e-05,  1.00000000e+00]
+])
+
+homography = np.array([
+    [+1.62697738e+01, -5.27176413e-01, +1.41912003e+03],
+    [+4.46017520e-01, +1.62425005e+01, +1.15933260e+03],
+    [+9.20165144e-06, +2.15441975e-05, +1.00000000e+00]
+])
+
+
 SDD = 679.0  # mm
 
 IMAGE_W = 2750  # mm
@@ -52,7 +65,7 @@ def normalize_bounds(bounds):
     return norm_bounds
 
 
-def LPRt(params, num_projs):
+def LPRt(params, num_projs, H):
     """
     creates the OCS -> WCS -> DCS projection matrices for all views,
     linear model for the post-detector projective geometry, supposing
@@ -73,7 +86,7 @@ def LPRt(params, num_projs):
         [0.0, 0.0, 1.0]
     ])
 
-    rot_step = np.deg2rad(360) / (num_projs - 1)
+    rot_step = np.deg2rad(360) / (num_projs)
     R_y_fn = lambda n: np.array([ 
         [ np.cos(initial-n*rot_step), 0.0, +np.sin(initial-n*rot_step)],
         [0.0, 1.0, 0.0],
@@ -101,11 +114,6 @@ def LPRt(params, num_projs):
         [0.0, 0.0, 1.0]
     ])
 
-    H = np.array([
-        [ 1.62730076e+01, -3.55474402e-01,  1.42003071e+03],
-        [ 3.09707202e-01,  1.62836233e+01,  1.16059758e+03],
-        [ 1.08490663e-05,  4.83287819e-05,  1.00000000e+00]
-    ])
     return H @ P @ Rt
 
 
@@ -116,12 +124,12 @@ def homo_normalization(res):
     return res
 
 
-def norm_objective_function(norm_params, ocs, dcs, num_projs):
+def norm_objective_function(norm_params, ocs, dcs, num_projs, H):
     """
     normalized for better convergence and stability as in Hartley & Zisserman
     """
     params = denormalize_params(norm_params)
-    LPRt_matrix = LPRt(params, num_projs)
+    LPRt_matrix = LPRt(params, num_projs, H)
     cam = np.matmul(LPRt_matrix, ocs.transpose(2,1,0))
     cam = homo_normalization(cam.transpose(2,1,0))
     return np.linalg.norm(cam-dcs) / num_projs
@@ -159,7 +167,7 @@ def scatter_plot(res):
     plt.show()
 
 
-def main():
+def calibrate(H):
     ocs = adjust_ocs(np.load("../data/phantom_OCS.npy"))
     dcs = np.load("../data/phantom_ICS.npy")
     num_projs = dcs.shape[-1]
@@ -185,7 +193,7 @@ def main():
     ]
 
     if os.environ.get("VIZ") == "2":
-        LPRt_matrix = LPRt(initial_params, num_projs)
+        LPRt_matrix = LPRt(initial_params, num_projs, H)
         cam = np.matmul(LPRt_matrix, ocs.transpose(2,1,0))
         cam = homo_normalization(cam.transpose(2,1,0))
         scatter_plot(cam)
@@ -195,7 +203,7 @@ def main():
     norm_calib = minimize(
         norm_objective_function,
         norm_initial,
-        args=(ocs, dcs, num_projs),
+        args=(ocs, dcs, num_projs, H),
         method='L-BFGS-B',
         bounds=norm_bounds,
         options={'maxiter': 50, 'ftol': 1e-9, 'gtol': 1e-6}
@@ -212,14 +220,22 @@ def main():
     print(f"SDD: {SDD:.2f} mm")
     print(f"magnification: {SDD/optimized_params[2]:.4f}")
     print(f"tilt: {np.degrees(optimized_params[3]):.2f} degrees")
-    print(f"roll: {np.degrees(optimized_params[4]):.2f} degrees")
+    roll = optimized_params[4]
+    print(f"roll: {np.degrees(roll):.2f} degrees")
     print(f"initial: {np.degrees(optimized_params[5] % (2*np.pi)):.2f} degrees")
     
     if os.environ.get("VIZ") == "2":
-        LPRt_matrix = LPRt(optimized_params, num_projs)
+        LPRt_matrix = LPRt(optimized_params, num_projs, H)
         cam = np.matmul(LPRt_matrix, ocs.transpose(2,1,0))
         cam = homo_normalization(cam.transpose(2,1,0))
         scatter_plot(cam)
+    
+    return roll
+
+
+def main():
+     _ = calibrate(homography)
+
 
 
 if __name__ == "__main__":

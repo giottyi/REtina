@@ -38,17 +38,17 @@ def detect_centers(src, flat):
     return centers
 
 
-def get_ICS_coords(projs_directory, flats_directory, fit=True):
+def get_ICS_coords(projs_directory, flats_directory):
     """
     returns homogeneous coordinates of the beads on the retinal plane,
     following them between projections by sorting y coordinates
     """
-    _, projs_stack = get_views(projs_directory, fit=fit)
-    flat = get_flat(flats_directory, fit=fit)
+    _, projs_stack = get_views(projs_directory)
+    flat = get_flat(flats_directory)
     all_centers = []
     for i, proj in enumerate(projs_stack):
         centers = detect_centers(proj, flat)
-        if os.environ.get('VIZ') == '2' and i % 9 == 0:
+        if os.environ.get('VIZ') == '2' and i % 31 == 0:
             plot_centers(ICS_normalize(proj,flat), centers)
         all_centers.append(centers)
     num_centers = max([len(centers) for centers in all_centers])
@@ -68,25 +68,27 @@ def plot_centers(src, centers=None):
 
     fig, ax = plt.subplots(figsize=(9, 9))
     im = ax.imshow(src)
-    ax.axis("off")
-    ax.invert_yaxis()
+    plt.gca().invert_yaxis()
     plt.show()
 
 
-def main():
-    if len(sys.argv) != 4:
-        print("Usage: python beads_images.py <projs_dir> <flats_dir> (<-f>)")
+def import_ics():
+    if len(sys.argv) != 3:
+        print("Usage: python beads_images.py <projs_dir> <flats_dir>")
         sys.exit(1)
     projs_dir = sys.argv[1]
     flats_dir = sys.argv[2]
-    fit = sys.argv[3] == "-f"
 
-    projs_array = get_ICS_coords(projs_dir, flats_dir, fit=fit)
+    projs_array = get_ICS_coords(projs_dir, flats_dir)
     os.makedirs('../data', exist_ok=True)
     np.save("../data/phantom_ICS.npy", projs_array)
     print(f"Saved Image Coordinate System of phantom projections as \'phantom_ICS.npy\' in ../data/")
     if os.environ.get('VIZ') == '1':
         print(projs_array)
+
+
+def main():
+    import_ics()
 
 
     

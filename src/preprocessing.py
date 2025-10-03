@@ -7,7 +7,7 @@ from tifffile import imread
 from astropy.io import fits
 from tqdm import tqdm
 
-import glob, sys#, time, datetime as dt
+import glob, re, sys#, time, datetime as dt
 
 
 #flats_dir = r'E:\OneDrive - Politecnico di Milano\NDT@DENG\RETINA\Users\Leone Di Lernia\trasfomatore\Trasformatore_110kV_4.6mA_2s\flats'
@@ -17,21 +17,31 @@ import glob, sys#, time, datetime as dt
 crop = None
 
 
-def get_views(directory, crop=None, fit=True):
-    if fit is True: 
-        views_paths = sorted(glob.glob(os.path.join(directory, "*.fit")))
-        if not views_paths:
-            raise UserWarning("No FIT files found in directory.")
+def _natural_key(s):
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r'(\d+)', s)]
 
-        hdul = fits.open(views_paths[0])
-        sample_view = hdul[0].data
 
-    else: 
-        views_paths = sorted(glob.glob(os.path.join(directory, "*.tif")))
-        if not views_paths:
-            raise UserWarning("No TIFF files found in directory.")
+def _load_view(path):
+    ext = os.path.splitext(path)[1].lower()
+    if ext in (".fit", ".fits", ".fts"):
+        with fits.open(path) as fit:
+            return np.flipud(fit[0].data)
+    elif ext in (".tif", ".tiff"):
+        return np.flipud(imread(path))
+    else:
+        raise ValueError(f"Unsupported file type: {ext}")
 
-        sample_view = imread(views_paths[0])
+
+def get_views(directory, crop=None):
+    views_paths = sorted(
+        glob.glob(os.path.join(directory, "*.*")),
+        key=_natural_key
+    )
+    views_paths = [p for p in views_paths if os.path.splitext(p)[1].lower() in (".fit", ".fits", ".fts", ".tif", ".tiff")]
+    if not views_paths:
+        raise UserWarning("No FITS or TIFF files found in directory.")
+
+    sample_view = _load_view(views_paths[0])
 
     if crop is not None:
         crop_width, crop_height = crop
@@ -41,8 +51,8 @@ def get_views(directory, crop=None, fit=True):
         x2 = x1 + crop_width
         y1 = cy - crop_height // 2
         y2 = y1 + crop_height
-        sample_view = np.flipud(sample_view)[y1:y2, x1:x2]
-    else: sample_view = np.flipud(sample_view)
+        sample_view = sample_view[y1:y2, x1:x2]
+
     n_views = len(views_paths)
     views_stack = np.empty((n_views, *sample_view.shape), dtype=sample_view.dtype)
     views_angles = np.empty(n_views, dtype=int)
@@ -50,35 +60,32 @@ def get_views(directory, crop=None, fit=True):
     views_stack[0] = sample_view
     #views_angles[0] = int(views_paths[0].split('.')[0].split('_')[-1])
     for i, view_path in enumerate(tqdm(views_paths[1:], desc="Loading views"), start=1):
-        if fit is True: 
-            hdul = fits.open(view_path)
-            view = hdul[0].data
-        else: view = imread(view_path)
+        view = _load_view(view_path)
         if crop is not None:
-            views_stack[i] = np.flipud(view)[y1:y2, x1:x2]
-        else: views_stack[i] = np.flipud(view)
+            view = view[y1:y2, x1:x2]
+        views_stack[i] = view
         #views_angles[i] = int(view_path.split('.')[0].split('_')[-1])
     return views_angles, views_stack
 
 
-def get_flat(directory, crop=None, fit=True):
-    _, flats_stack = get_views(directory, crop=crop, fit=fit)
+def get_flat(directory, crop=None):
+    _, flats_stack = get_views(directory, crop=crop)
     return np.median(flats_stack, axis=0).astype(flats_stack.dtype)
 
 
-def get_dark(directory, crop=None, fit=True):
-    return get_flat(directory, crop=crop, fit=fit)
+def get_dark(directory, crop=None):
+    return get_flat(directory, crop=crop)
 
 
-def get_data(views_path, flat_path, dark_path=None, crop=None, fit=True):
+def get_data(views_path, flat_path, dark_path=None, crop=None):
     """
-    applies flat-dark correction and minus_log
+    applies flat_dark correction and minus_log
     """
-    flat = get_flat(flat_path, crop=crop, fit=fit)
-    angles, views = get_views(views_path, crop=crop, fit=fit)
+    flat = get_flat(flat_path, crop=crop)
+    angles, views = get_views(views_path, crop=crop)
     if dark_path is None:
         dark = np.zeros_like(flat)
-    else: dark = get_dark(dark_path, crop=crop, fit=fit)
+    else: dark = get_dark(dark_path, crop=crop)
 
     def correct_log(views, flat, dark, dtype=np.float32, chunk=128):
         eps = np.finfo(np.float16).tiny
