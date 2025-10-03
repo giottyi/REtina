@@ -18,7 +18,7 @@ def find_homography(roll):
     circle_spacing = 14.22 * M  # mm (center-to-center)
 
     stack = tifffile.imread(path)
-    gray = np.median(stack, axis=0)
+    gray = np.flipud(np.median(stack, axis=0))
     if gray is None:
         raise ValueError(f"Failed to read image: {img_path}")
 
@@ -55,7 +55,7 @@ def find_homography(roll):
     objp[:, :2] *= circle_spacing
     centroid = np.mean(objp[:, :2], axis=0)
     objp[:, :2] -= centroid
-    objp_2d = objp[:, :2] * -1
+    objp_2d = objp[:, :2]
     objp_3d = np.hstack([objp_2d, np.zeros((objp_2d.shape[0], 1))])
 
     def roll_matrix(theta):
@@ -76,14 +76,16 @@ def main():
     roll = np.deg2rad(0.82)
     roll_list = []
     
-    for i in range(10):
+    for i in range(2):
         H = find_homography(roll)
-        print(H)
         roll = calibrate(H)
         roll_list.append(roll)
 
+    np.save('../data/Hmat.npy', H)
+    print(H)
     plt.plot(np.rad2deg(roll_list))
     plt.show()
+    print(np.rad2deg(roll_list))
 
 
 

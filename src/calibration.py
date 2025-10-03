@@ -10,19 +10,14 @@ import glob, sys#, time, datetime as dt
 
 
 homography = np.array([
-    [ 1.62774908e+01, -1.63539115e-01,  1.41912004e+03],
-    [ 8.30095856e-02,  1.62484113e+01,  1.15933260e+03],
-    [ 8.71800587e-06,  2.17443879e-05,  1.00000000e+00]
-])
-
-homography = np.array([
     [+1.62697738e+01, -5.27176413e-01, +1.41912003e+03],
     [+4.46017520e-01, +1.62425005e+01, +1.15933260e+03],
     [+9.20165144e-06, +2.15441975e-05, +1.00000000e+00]
 ])
 
+homography = np.load('../data/Hmat.npy')
 
-SDD = 679.0  # mm
+SDD = 690.0  # mm
 
 IMAGE_W = 2750  # mm
 IMAGE_H = 2200  # mm
@@ -109,12 +104,12 @@ def LPRt(params, num_projs, H):
 
     fix = 0.938
     L = np.array([                          # linear camera matrix
-        [+fix/pxl_size, 0.0, IMAGE_W//2],
+        [-fix/pxl_size, 0.0, IMAGE_W//2],
         [0.0, +fix/pxl_size, IMAGE_H//2],
         [0.0, 0.0, 1.0]
     ])
 
-    return H @ P @ Rt
+    return L @ P @ Rt
 
 
 def homo_normalization(res):
@@ -177,10 +172,10 @@ def calibrate(H):
 
     initial_params = [
         0.0, 0.0,           # trans_x, trans_y
-        656.0,              # trans_z, [mm]
-        np.radians(-5.0),    # tilt
-        np.radians(-3.0),    # roll
-        np.radians(315.0)     # initial rotation
+        503.0,              # trans_z, [mm]
+        np.deg2rad(-3.0),    # tilt
+        np.deg2rad(-1.0),    # roll
+        np.deg2rad(315.0)     # initial rotation
     ]
 
     bounds = [

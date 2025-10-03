@@ -37,7 +37,8 @@ def get_views(directory, crop=None):
         glob.glob(os.path.join(directory, "*.*")),
         key=_natural_key
     )
-    views_paths = [p for p in views_paths if os.path.splitext(p)[1].lower() in (".fit", ".fits", ".fts", ".tif", ".tiff")]
+    views_paths = [p for p in views_paths if os.path.splitext(p)[1].lower() in \
+            (".fit", ".fits", ".fts", ".tif", ".tiff")]
     if not views_paths:
         raise UserWarning("No FITS or TIFF files found in directory.")
 
@@ -59,7 +60,8 @@ def get_views(directory, crop=None):
 
     views_stack[0] = sample_view
     #views_angles[0] = int(views_paths[0].split('.')[0].split('_')[-1])
-    for i, view_path in enumerate(tqdm(views_paths[1:], desc="Loading views"), start=1):
+    for i, view_path in enumerate(tqdm(views_paths[1:], desc="Loading views", \
+            total=n_views, initial=1), start=1):
         view = _load_view(view_path)
         if crop is not None:
             view = view[y1:y2, x1:x2]
