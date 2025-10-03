@@ -89,7 +89,7 @@ def LPRt(params, num_projs, H):
     ])
     R_y_projs = np.stack([R_y_fn(n) for n in range(num_projs)])
 
-    R = R_z @ R_x @ R_y_projs
+    R = R_x @ R_z @ R_y_projs
     t = np.array([[trans_x], [trans_y], [trans_z]])
     t = np.tile(t[np.newaxis,:,:], (num_projs,1,1))
     Rt = np.concatenate((R,t), axis=2)
@@ -109,7 +109,7 @@ def LPRt(params, num_projs, H):
         [0.0, 0.0, 1.0]
     ])
 
-    return L @ P @ Rt
+    return H @ P @ Rt
 
 
 def homo_normalization(res):
@@ -205,25 +205,25 @@ def calibrate(H):
     )
 
     optimized_params = denormalize_params(norm_calib.x)
-    print(f"\nOptimization completed in {norm_calib.nit} iterations")
-    print(f"Final error: {norm_calib.fun:.6f}")
-    print(f"Success: {norm_calib.success}")
-    print("\nOptimized parameters:")
-    print(f"trans_x: {optimized_params[0]:.2f} mm")
-    print(f"trans_y: {optimized_params[1]:.2f} mm")
-    print(f"SOD: {optimized_params[2]:.2f} mm")
-    print(f"SDD: {SDD:.2f} mm")
-    print(f"magnification: {SDD/optimized_params[2]:.4f}")
-    print(f"tilt: {np.degrees(optimized_params[3]):.2f} degrees")
     roll = optimized_params[4]
-    print(f"roll: {np.degrees(roll):.2f} degrees")
-    print(f"initial: {np.degrees(optimized_params[5] % (2*np.pi)):.2f} degrees")
     
     if os.environ.get("VIZ") == "2":
         LPRt_matrix = LPRt(optimized_params, num_projs, H)
         cam = np.matmul(LPRt_matrix, ocs.transpose(2,1,0))
         cam = homo_normalization(cam.transpose(2,1,0))
         scatter_plot(cam)
+        print(f"\nOptimization completed in {norm_calib.nit} iterations")
+        print(f"Final error: {norm_calib.fun:.6f}")
+        print(f"Success: {norm_calib.success}")
+        print("\nOptimized parameters:")
+        print(f"trans_x: {optimized_params[0]:.2f} mm")
+        print(f"trans_y: {optimized_params[1]:.2f} mm")
+        print(f"SOD: {optimized_params[2]:.2f} mm")
+        print(f"SDD: {SDD:.2f} mm")
+        print(f"magnification: {SDD/optimized_params[2]:.4f}")
+        print(f"tilt: {np.degrees(optimized_params[3]):.2f} degrees")
+        print(f"roll: {np.degrees(roll):.2f} degrees")
+        print(f"initial: {np.degrees(optimized_params[5] % (2*np.pi)):.2f} degrees")
     
     return roll
 

@@ -56,6 +56,7 @@ def find_homography(roll):
     centroid = np.mean(objp[:, :2], axis=0)
     objp[:, :2] -= centroid
     objp_2d = objp[:, :2]
+    objp_2d[:,1] *= -1
     objp_3d = np.hstack([objp_2d, np.zeros((objp_2d.shape[0], 1))])
 
     def roll_matrix(theta):
@@ -73,7 +74,7 @@ def find_homography(roll):
 
 
 def main():
-    roll = np.deg2rad(0.82)
+    roll = np.deg2rad(+1.0)
     roll_list = []
     
     for i in range(2):
@@ -83,9 +84,10 @@ def main():
 
     np.save('../data/Hmat.npy', H)
     print(H)
-    plt.plot(np.rad2deg(roll_list))
-    plt.show()
-    print(np.rad2deg(roll_list))
+    print(f"Saved homography matrix as \'Hmat.npy\' in ../data/")
+
+    roll_list = np.rad2deg(roll_list)
+    print(roll_list)
 
 
 
