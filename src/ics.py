@@ -30,7 +30,7 @@ def detect_centers(src, flat):
             minDist=src.shape[0]/16, param1=51, param2=25, \
             minRadius=20, maxRadius=120)
     if circles is None:
-        print(f"ERROR : NO CENTERS DETECTED")
+        print("WARNING: NO CENTERS DETECTED")
         return None
     
     circles = np.uint16(np.around(circles))
@@ -43,23 +43,19 @@ def get_ICS_coords(projs_directory, flats_directory):
     returns homogeneous coordinates of the beads on the retinal plane,
     following them between projections by sorting y coordinates
     """
+    _, projs_stack = get_views(projs_directory)
     flat = get_flat(flats_directory)
-    projs_angles, projs_stack = get_views(projs_directory)
-    all_centers = {}
+    all_centers = []
     for i, proj in enumerate(projs_stack):
         centers = detect_centers(proj, flat)
-        if os.environ.get('VIZ') == '2':
+        if os.environ.get('VIZ') == '2' and i % 31 == 0:
             plot_centers(ICS_normalize(proj,flat), centers)
-        if centers is not None:
-            all_centers[projs_angles[i]] = centers
-
-    num_projs = len(projs_stack)
-    num_centers = max([len(centers) for centers in all_centers.values()])
-    homo_centers = np.full((num_centers, 3, num_projs), np.nan)
+        all_centers.append(centers)
+    num_centers = max([len(centers) for centers in all_centers])
+    homo_centers = np.full((num_centers, 3, len(projs_stack)), np.nan)
     homo_fill = np.ones_like(homo_centers[:,0,0])
-    for proj_idx, proj_angle in enumerate(all_centers.keys()):
-        centers = all_centers[proj_angle]
-        centers = centers[np.argsort(-centers[:,-1])]
+    for proj_idx, centers in enumerate(all_centers):
+        centers = centers[np.argsort(centers[:,-1])]
         homo_centers[:,0:2,proj_idx] = centers
         homo_centers[:,-1,proj_idx] = homo_fill
     return homo_centers
@@ -72,24 +68,27 @@ def plot_centers(src, centers=None):
 
     fig, ax = plt.subplots(figsize=(9, 9))
     im = ax.imshow(src)
-    ax.axis("off")
+    plt.gca().invert_yaxis()
     plt.show()
 
 
-def main():
+def import_ics():
     if len(sys.argv) != 3:
         print("Usage: python beads_images.py <projs_dir> <flats_dir>")
         sys.exit(1)
     projs_dir = sys.argv[1]
     flats_dir = sys.argv[2]
 
-    print("Processing projection data ...")
     projs_array = get_ICS_coords(projs_dir, flats_dir)
     os.makedirs('../data', exist_ok=True)
     np.save("../data/phantom_ICS.npy", projs_array)
-    print(f"Saved normalized projections as \'phantom_ICS.npy\' in ../data/")
+    print(f"Saved Image Coordinate System of phantom projections as \'phantom_ICS.npy\' in ../data/")
     if os.environ.get('VIZ') == '1':
         print(projs_array)
+
+
+def main():
+    import_ics()
 
 
     
