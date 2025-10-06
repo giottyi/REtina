@@ -9,12 +9,6 @@ from scipy.optimize import minimize
 import glob, sys#, time, datetime as dt
 
 
-homography = np.array([
-    [+1.62697738e+01, -5.27176413e-01, +1.41912003e+03],
-    [+4.46017520e-01, +1.62425005e+01, +1.15933260e+03],
-    [+9.20165144e-06, +2.15441975e-05, +1.00000000e+00]
-])
-
 homography = np.load('../data/Hmat.npy')
 
 SDD = 690.0  # mm
@@ -172,10 +166,10 @@ def calibrate(H):
 
     initial_params = [
         0.0, 0.0,           # trans_x, trans_y
-        503.0,              # trans_z, [mm]
-        np.deg2rad(-3.0),    # tilt
-        np.deg2rad(-1.0),    # roll
-        np.deg2rad(315.0)     # initial rotation
+        453.0,              # trans_z, [mm]
+        np.deg2rad(0.0),    # tilt
+        np.deg2rad(0.0),    # roll
+        np.deg2rad(0.0)     # initial rotation
     ]
 
     bounds = [
