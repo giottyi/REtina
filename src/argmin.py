@@ -9,7 +9,7 @@ from scipy.optimize import minimize
 import glob, sys#, time, datetime as dt
 
 
-homography = np.load('../data/Hmat.npy')
+H = np.load('../data/homography_mtx.npy')
 
 SDD = 690.0  # mm
 
@@ -223,7 +223,7 @@ def calibrate(H):
 
 
 def main():
-     _ = calibrate(homography)
+     _ = calibrate(H)
 
 
 

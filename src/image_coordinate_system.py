@@ -81,8 +81,8 @@ def import_ics():
 
     projs_array = get_ICS_coords(projs_dir, flats_dir)
     os.makedirs('../data', exist_ok=True)
-    np.save("../data/phantom_ICS.npy", projs_array)
-    print(f"Saved Image Coordinate System of phantom projections as \'phantom_ICS.npy\' in ../data/")
+    np.save("../data/phantom_ics.npy", projs_array)
+    print(f"Saved Image Coordinate System of phantom projections as \'phantom_ics.npy\' in ../data/")
     if os.environ.get('VIZ') == '1':
         print(projs_array)
 
