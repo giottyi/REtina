@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tifffile import imread
 from astropy.io import fits
+import cv2
 from tqdm import tqdm
 
 import glob, re, sys#, time, datetime as dt
@@ -79,7 +80,7 @@ def get_dark(directory, crop=None):
     return get_flat(directory, crop=crop)
 
 
-def get_data(views_path, flat_path, dark_path=None, crop=None):
+def get_data(views_path, flat_path, dark_path=None, crop=None, remove_outliers=True):
     """
     applies flat_dark correction and minus_log
     """
@@ -89,10 +90,16 @@ def get_data(views_path, flat_path, dark_path=None, crop=None):
         dark = np.zeros_like(flat)
     else: dark = get_dark(dark_path, crop=crop)
 
-    def correct_log(views, flat, dark, dtype=np.float32, chunk=128):
+    def _correct_log(views, flat, dark, dtype=np.float32, chunk=128):
         eps = np.finfo(np.float16).tiny
         denom = (flat - dark).astype(dtype, copy=False)
         out = np.empty(views.shape, dtype=dtype)
+        if remove_outliers == True:
+            # experimental
+            for i, view in enumerate(views):
+                views[i] = cv2.bilateralFilter(view.astype(dtype, copy=False),
+                                               d=9, sigmaColor=75, sigmaSpace=75)
+
         for i in range(0, views.shape[0], chunk):
             sl = slice(i, i+chunk)
             tmp = views[sl].astype(dtype, copy=False)
@@ -103,7 +110,7 @@ def get_data(views_path, flat_path, dark_path=None, crop=None):
             np.log(tmp, out=tmp)
             out[sl] = -tmp
         return out
-    return angles, correct_log(views, flat, dark)
+    return angles, _correct_log(views, flat, dark)
 
 
 def main():
@@ -111,11 +118,17 @@ def main():
     currently crops dataset to reconstruct with astra
     """
     #t0 = time.perf_counter() 
-    #angles, data = get_data(projs_dir, flats_dir, darks_dir, crop=None)
+    projs_dir, flats_dir = sys.argv[1:]
+    angles, data = get_data(projs_dir, flats_dir, crop=None)
     #print(data.dtype, data.min(), data.max())
     #print(data.shape)
     #elapsed = time.perf_counter() - t0
     #print(f"Finished in {elapsed:.3f} s  ({dt.timedelta(seconds=elapsed)})")
+
+    plt.imshow(data[1], cmap='gray')
+    plt.colorbar()
+    plt.gca().invert_yaxis()
+    plt.show()
     
 
 
