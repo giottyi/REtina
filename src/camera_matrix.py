@@ -9,7 +9,7 @@ import os, sys
 from preprocessing import get_views
 
 
-def _generate_objpoints(num_projs, roll_angle, tilt_angle, dims=(8,6)):
+def _generate_objpoints(num_projs, roll_angle=0.0, tilt_angle=0.0, dims=(8,6)):
     ''' work in progress
     H, mask = cv.findHomography(objp_rotated[:,:-1], corners_subpix, cv2.RANSAC)
     ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, (2200,2750), None, None)
@@ -65,7 +65,6 @@ def _generate_objpoints(num_projs, roll_angle, tilt_angle, dims=(8,6)):
 
 def _get_imgpoints(path, dims_list=[(8,6)]):
     _, views = get_views(path)
-    #views = np.squeeze(views, axis=0)
     views[:,:200,:] = 0
     views[:,:,:150] = 0
     blackwhite = np.where(views < 2000, 255, 0).astype(np.uint8)
