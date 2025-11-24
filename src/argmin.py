@@ -9,7 +9,7 @@ from scipy.optimize import minimize
 import glob, sys#, time, datetime as dt
 
 
-H = np.load('../data/homography_mtx.npy')
+H = np.load('../data/H_mtx_positive.npy')
 
 SDD = 690.0  # mm
 

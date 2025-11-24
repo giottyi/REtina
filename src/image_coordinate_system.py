@@ -12,7 +12,8 @@ from preprocessing import get_views, get_flat
 
 def ICS_normalize(src, flat):
     corrected = (src / flat).astype(np.float32)
-    filtered = cv.bilateralFilter(corrected, d=9, sigmaColor=75, sigmaSpace=75)
+    logged = np.log(src / flat + 1e-6).astype(np.float32)
+    filtered = cv.bilateralFilter(logged, d=9, sigmaColor=75, sigmaSpace=75)
     normalized = (filtered - filtered.min()) \
             / (filtered.max() - filtered.min()) * 255
     return normalized.astype(np.uint8)
@@ -26,8 +27,8 @@ def detect_centers(src, flat):
     src = cv.equalizeHist(src)
     """
     src = ICS_normalize(src, flat)
-    circles = cv.HoughCircles(src, cv.HOUGH_GRADIENT, dp=1, \
-            minDist=src.shape[0]/16, param1=51, param2=25, \
+    circles = cv.HoughCircles(src, cv.HOUGH_GRADIENT_ALT, dp=1.5, \
+            minDist=src.shape[0]/16, param1=300, param2=0.9, \
             minRadius=20, maxRadius=120)
     if circles is None:
         print("WARNING: NO CENTERS DETECTED")
@@ -48,7 +49,7 @@ def get_ICS_coords(projs_directory, flats_directory):
     all_centers = []
     for i, proj in enumerate(projs_stack):
         centers = detect_centers(proj, flat)
-        if os.environ.get('VIZ') == '2' and i % 31 == 0:
+        if os.environ.get('VIZ') == '2' and i % 1 == 0:
             plot_centers(ICS_normalize(proj,flat), centers)
         all_centers.append(centers)
     num_centers = max([len(centers) for centers in all_centers])
@@ -69,6 +70,7 @@ def plot_centers(src, centers=None):
     fig, ax = plt.subplots(figsize=(9, 9))
     im = ax.imshow(src)
     plt.gca().invert_yaxis()
+    fig.colorbar(im)
     plt.show()
 
 
